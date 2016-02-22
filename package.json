@@ -1,0 +1,32 @@
+{
+  "name": "movie-data",
+  "version": "0.0.1",
+  "description": "JSON data on American movies scraped from wikipedia",
+  "main": "index.js",
+  "dependencies": {
+    "async": "^1.5.2",
+    "cheerio": "^0.20.0",
+    "request": "2.x"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prust/movie-data.git"
+  },
+  "keywords": [
+    "movie",
+    "film",
+    "data",
+    "json"
+  ],
+  "author": "Peter Rust <peter@cornerstonenw.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/prust/movie-data/issues"
+  },
+  "homepage": "https://github.com/prust/movie-data#readme"
+}
