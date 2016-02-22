@@ -1,6 +1,8 @@
 # Movie Data
 
-JSON data on American movies scraped from Wikipedia:
+JSON data on American movies scraped from Wikipedia.
+
+`movies.json` contains all the data from Wikipedia in convenient form: an array of objects, each representing a movie, with a `title` string, `year` integer, a `director` array, a `cast` array, a `genre` array and a `notes` array -- each representing the text content of those respective columns in the Wikipedia tables:
 
 ```javascript
 [
@@ -26,9 +28,9 @@ JSON data on American movies scraped from Wikipedia:
 ]
 ```
 
-I got frustrated at the lack of decent, public movie data APIs (IMDB doesn't offer an API, Netflix removed their API, Rotten Tomatoes' API requires an approval process, etc) and then realized that Wikipedia had a decent listing of American movies and that it's not really that much data, so I could scrape it and easily put it into JSON form.
+## Motivation
 
-The `movies.json` file contains all the data from Wikipedia in convenient form: an array of objects, each representing a movie, with a `title` string, `year` integer, a `director` array, a `cast` array, a `genre` array and a `notes` array -- each representing the text content of those respective columns in the Wikipedia tables. 
+I was frustrated at the lack of decent, public movie data APIs (IMDB doesn't offer an API, Netflix removed their API, Rotten Tomatoes' API requires an approval process, etc) and then realized that Wikipedia had decent data on American movies and that it's not too much data to scrape and put in a static JSON file.
 
 ## Known Issues
 
@@ -62,10 +64,6 @@ This should result in a more compact, useful JSON file, probably arranged someth
   "companies": [ /* ... */ ]
 }
 ```
-
-## Using the JSON file
-
-You can use the `movies.json` JSON file directly from Node or the browser or most other programming languages.
 
 ## Scraping Wikipedia and adding to the JSON file
 
