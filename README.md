@@ -30,7 +30,7 @@ JSON data on American movies scraped from Wikipedia.
 
 ## Motivation
 
-I was frustrated at the lack of decent, public movie data APIs (IMDB doesn't offer an API, Netflix removed their API, Rotten Tomatoes' API requires an approval process, etc) and then realized that Wikipedia had decent data on American movies and that it's not too much data to scrape and put in a static JSON file.
+I was frustrated at the lack of decent, public movie data APIs (IMDB doesn't offer an API, Netflix removed their API, Rotten Tomatoes' API requires an approval process, etc). (Note: I still need to check out http://www.omdbapi.com/) Then realized that Wikipedia had decent data on American movies and that it's not too much data to scrape and put in a static JSON file.
 
 ## Known Issues
 
@@ -45,6 +45,8 @@ Genres are pretty messy in the data as well. A lot of times two genres are inclu
 My script doesn't handle multiple titles very well: it assumes there is one title and if there are two listed in Wikipedia they will be shoved together. In the example above, I manually cleaned up "Avengers, TheThe Avengers" to just "Avengers, The Avengers", but really it should have been parsed into a list of "Avengers, The" and "The Avengers".
 
 ## Future Directions
+
+I should double-check that neither http://www.omdbapi.com/ or IMDB (there are a lot of scrapers available for IMDB, but I need to check on the legality of this) are easier or have higher-quality data.
 
 I would like to change the script to interpret `title` as an array, so that it captures the "Avengers, The" and "The Avengers" double title instance mentioned above. The idea being that the script scrapes Wikipedia's data as accurately and faithfully as possible.
 
