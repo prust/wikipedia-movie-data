@@ -2,9 +2,9 @@
 
 JSON data on American movies scraped from Wikipedia:
 
-```json
+```javascript
 [
-  ...
+  // ...
   {
     "title": "Avengers: Age of Ultron",
     "year": 2015,
@@ -13,7 +13,7 @@ JSON data on American movies scraped from Wikipedia:
     "genre":["Action"],
     "notes":["Walt Disney","Sequel to The Avengers (2012)","Based on the comics of the same name by Stan Lee and Jack Kirby"]
   },
-  ...
+  // ...
   {
     "title": "Avengers, The Avengers",
     "year": 2012,
@@ -22,7 +22,7 @@ JSON data on American movies scraped from Wikipedia:
     "genre": ["Superhero"],
     "notes": ["Walt Disney Pictures, Marvel Studios","Based on the comic book of the same name by Stan Lee and Jack Kirby"]
   }
-  ...
+  // ...
 ]
 ```
 
@@ -54,12 +54,12 @@ A final step would be to separate out the companies mentioned in the notes into 
 
 This should result in a more compact, useful JSON file, probably arranged something like this:
 
-```json
+```javascript
 {
-  "movies": [ ... ],
-  "genres": [ ... ],
-  "people": [ ... ],
-  "companies": [ ... ]
+  "movies": [ /* ... */ ],
+  "genres": [ /* ... */ ],
+  "people": [ /* ... */ ],
+  "companies": [ /* ... */ ]
 }
 ```
 
