@@ -4,7 +4,7 @@ var cheerio = require('cheerio');
 var async = require('async');
 
 var years = [];
-for (var year = 1900; year < 1910; year++)
+for (var year = 1900; year < 2017; year++)
   years.push(year);
 
 async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
@@ -13,7 +13,7 @@ async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
     movies = movies.concat(movies_for_year);
   });
 
-  var complete_movie_list = JSON.parse(fs.readFileSync('movies.json'));
+  var complete_movie_list = []; // JSON.parse(fs.readFileSync('movies.json')); // read in the JSON file if you want to append to it
   complete_movie_list = complete_movie_list.concat(movies);
   fs.writeFileSync('movies.json', JSON.stringify(complete_movie_list), {encoding: 'utf8'});
 });
@@ -56,6 +56,7 @@ function scrapeMoviesForYear(year, callback) {
           if (!title_cell.text().trim())
             return;
 
+          title_cell.find('.sortkey').remove();
           var director_cell = title_cell.next();
           var cast_cell = director_cell.next();
           var genre_cell = cast_cell.next();
@@ -64,10 +65,10 @@ function scrapeMoviesForYear(year, callback) {
           var movie_data = {
             title: title_cell.text(),
             year: year,
-            director: toArray(director_cell),
-            cast: toArray(cast_cell),
-            genre: toArray(genre_cell),
-            notes: toArray(notes_cell)
+            director: toCommaDelimitedList(director_cell),
+            cast: toCommaDelimitedList(cast_cell),
+            genre: toCommaDelimitedList(genre_cell),
+            notes: toCommaDelimitedList(notes_cell)
           };
           movies.push(movie_data);
 
@@ -81,6 +82,10 @@ function scrapeMoviesForYear(year, callback) {
   }, 1000);
 }
 
-function toArray(cell) {
-  return cell.text().split('\n');
+function toCommaDelimitedList(cell) {
+  var text = cell.text().trim();
+  if (text)
+    return text.split('\n').join(', ');
+  else
+    return null;
 }
