@@ -11,7 +11,7 @@ JSON data on American movies scraped from Wikipedia.
     "title": "Avengers: Age of Ultron",
     "year": 2015,
     "director": "Joss Whedon",
-    "cast": "Robert Downey, Jr., Chris Evans, Chris Hemsworth, Mark Ruffalo,
+    "cast": "Robert Downey, Jr., Chris Evans, Chris Hemsworth, Mark Ruffalo",
     "genre": "Action",
     "notes": "Walt Disney, Sequel to The Avengers (2012), Based on the comics of the same name by Stan Lee and Jack Kirby"
   },
