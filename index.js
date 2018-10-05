@@ -1,7 +1,11 @@
 var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
+var $ = cheerio;
 var async = require('async');
+
+var invalid_genres = JSON.parse(fs.readFileSync('invalid-genres.json'));
+var genre_replacements = JSON.parse(fs.readFileSync('genre-replacements.json'));
 
 var years = [];
 for (var year = 1930; year <= 2018; year++)
@@ -65,8 +69,10 @@ function scrapeMoviesForYear(year, callback) {
             return;
 
           title_cell.find('.sortkey').remove();
-          var director_cell = title_cell.next();
-          var cast_cell = director_cell.next();
+
+          // skip the next cell which is Director for 2016 & earlier
+          // but is Studios for 2017 & later
+          var cast_cell = title_cell.next().next();
           var genre_cell = cast_cell.next();
           if (year == 2018) {
             var country_cell = genre_cell.next();
@@ -75,22 +81,14 @@ function scrapeMoviesForYear(year, callback) {
             if (country_cell.text().indexOf('US') == -1)
               return;
           }
-          else {
-            var notes_cell = genre_cell.next();
-          }
           
           var movie_data = {
-            title: title_cell.text(),
+            title: title_cell.text().trim(),
             year: year,
-            director: toCommaDelimitedList(director_cell),
-            cast: toCommaDelimitedList(cast_cell),
-            genre: toCommaDelimitedList(genre_cell),
-            notes: toCommaDelimitedList(notes_cell)
+            cast: toArray(cast_cell),
+            genres: cleanGenres(toArray(genre_cell))
           };
           movies.push(movie_data);
-
-          var m = movie_data;
-          // console.log(m.title + ':', m.director, m.cast, m.genre, m.notes);
         });
       });
 
@@ -99,10 +97,49 @@ function scrapeMoviesForYear(year, callback) {
   }, 1000);
 }
 
-function toCommaDelimitedList(cell) {
-  var text = cell && cell.text().trim();
-  if (text)
-    return text.split('\n').join(', ');
-  else
-    return null;
+function cleanGenres(genres) {
+  var cleaned_genres = [];
+  
+  genres.forEach(function(genre) {
+    if (invalid_genres.indexOf(genre) > -1)
+      return;
+    if (genre_replacements[genre])
+      cleaned_genres = cleaned_genres.concat(genre_replacements[genre]);
+    else
+      cleaned_genres.push(genre);
+  });
+
+  return cleaned_genres;
+}
+
+function toArray(cell) {
+  var arr = [];
+
+  if (!cell)
+    return arr;
+
+  cell.contents().each(function(ix, el) {
+    var text = $(el).text().trim();
+    var text_parts = text.split(/\n|,|;|\//);
+    text_parts.forEach(function(text, ix) {
+      text = text.trim();
+      if (!text)
+        return;
+
+      if (text == '(director)')
+        arr[arr.length - 1] += ' (director)';
+      else if (text == '(screenplay)')
+        arr[arr.length - 1] += ' (screenplay)';
+      else if (text == '(director' && text_parts[ix + 1] == 'screenplay)')
+        arr[arr.length - 1] += ' (director, screenplay)';
+      else if (text.endsWith(' (director') && text_parts[ix + 1] == 'screenplay)')
+        arr.push(text + ', screenplay)');
+      else if (text == 'screenplay)')
+        return; // this was handled by the previous iteration
+      else
+        arr.push(text);
+    });
+  });
+
+  return arr;
 }
