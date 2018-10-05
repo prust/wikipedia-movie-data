@@ -4,7 +4,7 @@ var cheerio = require('cheerio');
 var async = require('async');
 
 var years = [];
-for (var year = 1900; year < 2017; year++)
+for (var year = 1930; year <= 2018; year++)
   years.push(year);
 
 async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
@@ -21,7 +21,15 @@ async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
 function scrapeMoviesForYear(year, callback) {
   // setTimeout() so wikipedia doesn't hate us for slamming their servers
   setTimeout(function() {
-    request('https://en.wikipedia.org/wiki/List_of_American_films_of_' + year, function(err, res, body) {
+    console.log('loading movies from ' + year);
+    
+    var url;
+    if (year == 2018)
+      url = 'https://en.wikipedia.org/wiki/2018_in_film';
+    else
+      url = 'https://en.wikipedia.org/wiki/List_of_American_films_of_' + year;
+
+    request(url, function(err, res, body) {
       if (err)
         throw err;
       if (res.statusCode != 200)
@@ -60,7 +68,16 @@ function scrapeMoviesForYear(year, callback) {
           var director_cell = title_cell.next();
           var cast_cell = director_cell.next();
           var genre_cell = cast_cell.next();
-          var notes_cell = genre_cell.next();
+          if (year == 2018) {
+            var country_cell = genre_cell.next();
+
+            // filter to just US films, like the other years
+            if (country_cell.text().indexOf('US') == -1)
+              return;
+          }
+          else {
+            var notes_cell = genre_cell.next();
+          }
           
           var movie_data = {
             title: title_cell.text(),
@@ -73,7 +90,7 @@ function scrapeMoviesForYear(year, callback) {
           movies.push(movie_data);
 
           var m = movie_data;
-          console.log(m.title + ':', m.director, m.cast, m.genre, m.notes);
+          // console.log(m.title + ':', m.director, m.cast, m.genre, m.notes);
         });
       });
 
@@ -83,7 +100,7 @@ function scrapeMoviesForYear(year, callback) {
 }
 
 function toCommaDelimitedList(cell) {
-  var text = cell.text().trim();
+  var text = cell && cell.text().trim();
   if (text)
     return text.split('\n').join(', ');
   else

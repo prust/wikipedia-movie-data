@@ -2,7 +2,7 @@
 
 JSON data on American movies scraped from Wikipedia.
 
-`movies.json` contains all the data from Wikipedia in convenient form: an array of objects, each representing a movie, with a `title` string, `year` integer, a `director` string, a `cast` string, a `genre` string and a `notes` string -- each representing the text content of those respective columns in the Wikipedia tables:
+`movies.json` contains a list of 1930-2018 movies from Wikipedia in convenient form: an array of objects, each representing a movie, with a `title` string, `year` integer, a `director` string, a `cast` string, a `genre` string and a `notes` string -- each representing the text content of those respective columns in the Wikipedia tables:
 
 ```javascript
 [
