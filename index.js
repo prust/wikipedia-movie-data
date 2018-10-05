@@ -126,7 +126,9 @@ function toArray(cell) {
       if (!text)
         return;
 
-      if (text == '(director)')
+      if (text == 'Jr.')
+        arr[arr.length - 1] += ', Jr.';
+      else if (text == '(director)')
         arr[arr.length - 1] += ' (director)';
       else if (text == '(screenplay)')
         arr[arr.length - 1] += ' (screenplay)';
