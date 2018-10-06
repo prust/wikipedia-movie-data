@@ -20,6 +20,13 @@ async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
   var complete_movie_list = []; // JSON.parse(fs.readFileSync('movies.json')); // read in the JSON file if you want to append to it
   complete_movie_list = complete_movie_list.concat(movies);
   fs.writeFileSync('movies.json', JSON.stringify(complete_movie_list), {encoding: 'utf8'});
+
+  // display list of unique genres, as a quality check
+  // var genres = Object.keys(uniq_genres);
+  // genres.sort();
+  // genres.forEach(function(genre) {
+  //   console.log(JSON.stringify(genre));
+  // });
 });
 
 function scrapeMoviesForYear(year, callback) {
@@ -56,11 +63,11 @@ function scrapeMoviesForYear(year, callback) {
 
           var cells = $(el).find('td');
           var title_cell = $(cells[0]);
-          if (title_cell.attr('rowspan'))
+          if (isDateCell(title_cell))
             title_cell = $(cells[1]);
-          if (title_cell.attr('rowspan'))
+          if (isDateCell(title_cell))
             title_cell = $(cells[2]);
-          if (title_cell.attr('rowspan'))
+          if (isDateCell(title_cell))
             throw new Error('Unexpected: a 3 cells in a row with rowspans');
 
           // often there are empty rows with just rowspans
@@ -97,16 +104,30 @@ function scrapeMoviesForYear(year, callback) {
   }, 1000);
 }
 
+function isDateCell(cell) {
+  return cell.attr('rowspan') ||
+    (cell.attr('style') && cell.attr('style').indexOf('center') > -1) ||
+    (cell.attr('align') && cell.attr('align').indexOf('center') > -1);
+}
+
+var uniq_genres = {};
 function cleanGenres(genres) {
   var cleaned_genres = [];
   
   genres.forEach(function(genre) {
     if (invalid_genres.indexOf(genre) > -1)
       return;
-    if (genre_replacements[genre])
-      cleaned_genres = cleaned_genres.concat(genre_replacements[genre]);
-    else
+    if (genre_replacements[genre.toLowerCase()]) {
+      cleaned_genres = cleaned_genres.concat(genre_replacements[genre.toLowerCase()]);
+    }
+    else if (genre == '-themed comedy-drama') {
+      cleaned_genres.push('Comedy');
+      cleaned_genres.push('Drama');
+    }
+    else {
+      uniq_genres[genre] = true;
       cleaned_genres.push(genre);
+    }
   });
 
   return cleaned_genres;
@@ -128,16 +149,12 @@ function toArray(cell) {
 
       if (text == 'Jr.')
         arr[arr.length - 1] += ', Jr.';
-      else if (text == '(director)')
-        arr[arr.length - 1] += ' (director)';
-      else if (text == '(screenplay)')
-        arr[arr.length - 1] += ' (screenplay)';
-      else if (text == '(director' && text_parts[ix + 1] == 'screenplay)')
-        arr[arr.length - 1] += ' (director, screenplay)';
-      else if (text.endsWith(' (director') && text_parts[ix + 1] == 'screenplay)')
-        arr.push(text + ', screenplay)');
-      else if (text == 'screenplay)')
-        return; // this was handled by the previous iteration
+      else if (text == '-')
+        return;
+      // don't include directors or screenwriters (it gets complicated
+      // to parse the different ways they're listed; they're always at the top of the list)
+      else if (text.indexOf('director') > -1 || text.indexOf('screenplay') > -1)
+        arr = [];
       else
         arr.push(text);
     });
