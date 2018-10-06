@@ -58,7 +58,7 @@ Note that there may be errors in the Wikipedia's data. For instance in 2016 I no
 
 One particularly striking absence is "Star Wars: The Force Awakens". There is a long chunk of notes about it in the 2015 List but the film itself isn't listed in the December section of the table.
 
-There has been some work done to clean up Wikipedia's mess & inconsistent genres, thanks to some initial work by @stacytao. You can view the metadata that drives this cleanup in the files `invalid-genres.json` and `genre-replacements.json`.
+There has been some work done to clean up Wikipedia's mess & inconsistent genres, thanks to some initial work by @stacytao. You can view the metadata that drives this cleanup in the files `genres.json` and `genre-replacements.json`.
 
 ## Scraping Wikipedia and adding to the JSON file
 

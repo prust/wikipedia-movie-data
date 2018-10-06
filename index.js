@@ -4,13 +4,19 @@ var cheerio = require('cheerio');
 var $ = cheerio;
 var async = require('async');
 
-var invalid_genres = JSON.parse(fs.readFileSync('invalid-genres.json'));
 var genre_replacements = JSON.parse(fs.readFileSync('genre-replacements.json'));
+
+// lowercase-to-proper-case whitelist
+var whitelist = {};
+JSON.parse(fs.readFileSync('genres.json')).forEach(function(genre) {
+  whitelist[genre.toLowerCase()] = genre;
+});
 
 var years = [];
 for (var year = 1930; year <= 2018; year++)
   years.push(year);
 
+invalid_genres = {};
 async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
   var movies = [];
   results.forEach(function(movies_for_year) {
@@ -21,8 +27,8 @@ async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
   complete_movie_list = complete_movie_list.concat(movies);
   fs.writeFileSync('movies.json', JSON.stringify(complete_movie_list), {encoding: 'utf8'});
 
-  // display list of unique genres, as a quality check
-  // var genres = Object.keys(uniq_genres);
+  // display list of invalid genres, as a quality check
+  // var genres = Object.keys(invalid_genres);
   // genres.sort();
   // genres.forEach(function(genre) {
   //   console.log(JSON.stringify(genre));
@@ -115,18 +121,19 @@ function cleanGenres(genres) {
   var cleaned_genres = [];
   
   genres.forEach(function(genre) {
-    if (invalid_genres.indexOf(genre) > -1)
-      return;
-    if (genre_replacements[genre.toLowerCase()]) {
-      cleaned_genres = cleaned_genres.concat(genre_replacements[genre.toLowerCase()]);
-    }
-    else if (genre == '-themed comedy-drama') {
-      cleaned_genres.push('Comedy');
-      cleaned_genres.push('Drama');
+    genre = genre.toLowerCase();
+
+    if (whitelist[genre])
+      cleaned_genres.push(whitelist[genre]);
+    else if (genre_replacements[genre]) {
+      cleaned_genres = cleaned_genres.concat(genre_replacements[genre]);
     }
     else {
-      uniq_genres[genre] = true;
-      cleaned_genres.push(genre);
+      var genres = genre.split(/ |-|–|\/|\./);
+      if (genres.length > 1)
+        cleaned_genres = cleaned_genres.concat(cleanGenres(genres));
+      else
+        invalid_genres[genre] = true;
     }
   });
 
