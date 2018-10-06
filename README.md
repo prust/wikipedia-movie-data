@@ -55,7 +55,7 @@ This effort includes a good deal of work to clean up Wikipedia's messy & inconsi
 
 ## Known Issues
 
-With a lot of the older movies (early 1900s) much of the data isn't populated, so there are a lot of `null` values.
+With some of the older years (early 1900s) some of the data isn't populated, so there are a lot of `null` values.
 
 Note that there may be errors in the Wikipedia's data. For instance in 2016 I noticed that one film is duplicated (perhaps because the release date changed). If you write a script that detects or removes duplicates, please let me know.
 
