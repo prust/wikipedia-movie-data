@@ -13,7 +13,7 @@ JSON.parse(fs.readFileSync('genres.json')).forEach(function(genre) {
 });
 
 var years = [];
-for (var year = 1930; year <= 2018; year++)
+for (var year = 1900; year <= 2018; year++)
   years.push(year);
 
 invalid_genres = {};
@@ -62,6 +62,11 @@ function scrapeMoviesForYear(year, callback) {
       var movies = [];
       tables.each(function(ix, table) {
         var rows = $(table).find('tr');
+
+        // skip 'Top-grossing Films' tables (heading row includes "Gross")
+        if ($(rows[0]).text().indexOf('Gross') > -1)
+          return;
+
         rows.each(function(ix, el) {
           // the first row just has headings
           if (ix == 0)
@@ -99,7 +104,7 @@ function scrapeMoviesForYear(year, callback) {
             title: title_cell.text().trim(),
             year: year,
             cast: toArray(cast_cell),
-            genres: cleanGenres(toArray(genre_cell))
+            genres: cleanGenres(toArray(genre_cell), year)
           };
           movies.push(movie_data);
         });
@@ -117,7 +122,7 @@ function isDateCell(cell) {
 }
 
 var uniq_genres = {};
-function cleanGenres(genres) {
+function cleanGenres(genres, year) {
   var cleaned_genres = [];
   
   genres.forEach(function(genre) {
@@ -130,10 +135,15 @@ function cleanGenres(genres) {
     }
     else {
       var genres = genre.split(/ |-|–|\/|\./);
-      if (genres.length > 1)
-        cleaned_genres = cleaned_genres.concat(cleanGenres(genres));
-      else
-        invalid_genres[genre] = true;
+      if (genres.length > 1) {
+        cleaned_genres = cleaned_genres.concat(cleanGenres(genres, year));
+      }
+      else {
+        if (!invalid_genres[genre]) {
+          // console.log(`  - ${JSON.stringify(genre)} (${year})`);
+          invalid_genres[genre] = true;
+        }
+      }
     }
   });
 
