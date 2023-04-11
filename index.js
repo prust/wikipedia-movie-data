@@ -1,118 +1,133 @@
-var fs = require('fs');
-var request = require('request');
-var cheerio = require('cheerio');
-var $ = cheerio;
-var async = require('async');
+let fs = require('fs');
+let promisify = require('util').promisify;
+let request = require('request');
+request = promisify(request);
+let cheerio = require('cheerio');
+let $ = cheerio;
 
-var genre_replacements = JSON.parse(fs.readFileSync('genre-replacements.json'));
+let genre_replacements = JSON.parse(fs.readFileSync('genre-replacements.json'));
 
 // lowercase-to-proper-case whitelist
-var whitelist = {};
+let whitelist = {};
 JSON.parse(fs.readFileSync('genres.json')).forEach(function(genre) {
   whitelist[genre.toLowerCase()] = genre;
 });
 
-var years = [];
-for (var year = 1900; year <= 2018; year++)
+let years = [];
+for (let year = 1970; year <= 2023; year++)
   years.push(year);
 
 invalid_genres = {};
-async.mapSeries(years, scrapeMoviesForYear, function(err, results) {
-  var movies = [];
-  results.forEach(function(movies_for_year) {
-    movies = movies.concat(movies_for_year);
+
+main();
+
+async function main() {
+  let movies = [];
+  for (let year of years) {
+    movies = movies.concat(await scrapeMoviesForYear(year));
+  }
+
+  for (let movie of movies) {
+    await timeout(50);
+    let res = await request(`https://en.wikipedia.org/api/rest_v1/page/summary/${movie.href}`);
+    if (res.statusCode == 404) {
+      continue;
+    }
+
+    if (res.statusCode != 200) {
+      throw new Error('wikipedia returned an error response: ' + res.statusCode);
+    }
+
+    let summary_data = JSON.parse(res.body);
+    movie.description = summary_data.description;
+    movie.extract = summary_data.extract;
+    if (summary_data.thumbnail) {
+      movie.thumbnail = summary_data.thumbnail.source;
+      movie.thumbnail_width = summary_data.thumbnail.width;
+      movie.thumbnail_height = summary_data.thumbnail.height;
+    }
+
+    console.log(`${movie.title}: "${movie.extract.split('.')[0]}"`);
+  }
+
+  fs.writeFileSync('movies.json', JSON.stringify(movies, null, 2), { encoding: 'utf8' });
+}
+
+async function scrapeMoviesForYear(year) {
+  // setTimeout() so wikipedia doesn't hate us for slamming their servers
+  await timeout(1000);
+  console.log('loading movies from ' + year);
+  
+  let url = 'https://en.wikipedia.org/wiki/List_of_American_films_of_' + year;
+
+  let res = await request(url);//, function(err, res, body) {
+  if (res.statusCode != 200)
+    throw new Error('wikipedia returned an error response: ' + res.statusCode);
+  let body = res.body;
+
+  let $ = cheerio.load(body);
+  let tables = $('table.wikitable');
+  if (!tables.length) {
+    console.log(body);
+    throw new Error('Did not find a table w/ class "wikitable" in Wikipedia\'s response');
+  }
+
+  let movies = [];
+  tables.each(function(ix, table) {
+    let rows = $(table).find('tr');
+
+    // skip 'Top-grossing Films' tables (heading row includes "Gross")
+    if ($(rows[0]).text().toLowerCase().includes('gross'))
+      return;
+
+    rows.each(function(ix, el) {
+      // the first row just has headings
+      if (ix == 0)
+        return;
+
+      let cells = $(el).find('td');
+      let title_cell = $(cells[0]);
+      if (isDateCell(title_cell))
+        title_cell = $(cells[1]);
+      if (isDateCell(title_cell))
+        title_cell = $(cells[2]);
+      if (isDateCell(title_cell))
+        throw new Error('Unexpected: a 3 cells in a row with rowspans');
+
+      // often there are empty rows with just rowspans
+      // perhaps leftover from when there was an anticipated release in that month
+      if (!title_cell.text().trim())
+        return;
+
+      title_cell.find('.sortkey').remove();
+
+      let cast_cell = title_cell.next().next();
+      let genre_cell = cast_cell.next();
+
+      let href = title_cell.find('a').attr('href');
+      
+      // action=edit are placeholders for wikipedia pages not yet created; screen them out
+      if (href && href.includes('action=edit')) {
+        href = null;
+      }
+      else if (href) { // these are normal links, clean them up
+        assert(href.includes('/wiki/'), `Expected "${href}" to include "/wiki/"`);
+        href = href.replace('/wiki/', '');
+      }
+      
+      let movie_data = {
+        title: title_cell.text().trim(),
+        year: year,
+        cast: toArray(cast_cell),
+        genres: cleanGenres(toArray(genre_cell), year),
+        href: href
+      };
+      console.log(`${movie_data.year} ${movie_data.genres.join(',')} (${movie_data.cast.join(', ')}) "${movie_data.title}"`)
+      movies.push(movie_data);
+    });
   });
 
-  var complete_movie_list = []; // JSON.parse(fs.readFileSync('movies.json')); // read in the JSON file if you want to append to it
-  complete_movie_list = complete_movie_list.concat(movies);
-  fs.writeFileSync('movies.json', JSON.stringify(complete_movie_list), {encoding: 'utf8'});
-
-  // display list of invalid genres, as a quality check
-  // var genres = Object.keys(invalid_genres);
-  // genres.sort();
-  // genres.forEach(function(genre) {
-  //   console.log(JSON.stringify(genre));
-  // });
-});
-
-function scrapeMoviesForYear(year, callback) {
-  // setTimeout() so wikipedia doesn't hate us for slamming their servers
-  setTimeout(function() {
-    console.log('loading movies from ' + year);
-    
-    var url;
-    if (year == 2018)
-      url = 'https://en.wikipedia.org/wiki/2018_in_film';
-    else
-      url = 'https://en.wikipedia.org/wiki/List_of_American_films_of_' + year;
-
-    request(url, function(err, res, body) {
-      if (err)
-        throw err;
-      if (res.statusCode != 200)
-        throw new Error('wikipedia returned an error response: ' + res.statusCode);
-
-      var $ = cheerio.load(body);
-      var tables = $('table.wikitable');
-      if (!tables.length) {
-        console.log(body);
-        throw new Error('Did not find a table w/ class "wikitable" in Wikipedia\'s response');
-      }
-
-      var movies = [];
-      tables.each(function(ix, table) {
-        var rows = $(table).find('tr');
-
-        // skip 'Top-grossing Films' tables (heading row includes "Gross")
-        if ($(rows[0]).text().indexOf('Gross') > -1)
-          return;
-
-        rows.each(function(ix, el) {
-          // the first row just has headings
-          if (ix == 0)
-            return;
-
-          var cells = $(el).find('td');
-          var title_cell = $(cells[0]);
-          if (isDateCell(title_cell))
-            title_cell = $(cells[1]);
-          if (isDateCell(title_cell))
-            title_cell = $(cells[2]);
-          if (isDateCell(title_cell))
-            throw new Error('Unexpected: a 3 cells in a row with rowspans');
-
-          // often there are empty rows with just rowspans
-          // perhaps leftover from when there was an anticipated release in that month
-          if (!title_cell.text().trim())
-            return;
-
-          title_cell.find('.sortkey').remove();
-
-          // skip the next cell which is Director for 2016 & earlier
-          // but is Studios for 2017 & later
-          var cast_cell = title_cell.next().next();
-          var genre_cell = cast_cell.next();
-          if (year == 2018) {
-            var country_cell = genre_cell.next();
-
-            // filter to just US films, like the other years
-            if (country_cell.text().indexOf('US') == -1)
-              return;
-          }
-          
-          var movie_data = {
-            title: title_cell.text().trim(),
-            year: year,
-            cast: toArray(cast_cell),
-            genres: cleanGenres(toArray(genre_cell), year)
-          };
-          movies.push(movie_data);
-        });
-      });
-
-      callback(null, movies);
-    });
-  }, 1000);
+  return movies;
 }
 
 function isDateCell(cell) {
@@ -121,9 +136,8 @@ function isDateCell(cell) {
     (cell.attr('align') && cell.attr('align').indexOf('center') > -1);
 }
 
-var uniq_genres = {};
 function cleanGenres(genres, year) {
-  var cleaned_genres = [];
+  let cleaned_genres = [];
   
   genres.forEach(function(genre) {
     genre = genre.toLowerCase();
@@ -134,13 +148,12 @@ function cleanGenres(genres, year) {
       cleaned_genres = cleaned_genres.concat(genre_replacements[genre]);
     }
     else {
-      var genres = genre.split(/ |-|–|\/|\./);
+      let genres = genre.split(/ |-|–|\/|\./);
       if (genres.length > 1) {
         cleaned_genres = cleaned_genres.concat(cleanGenres(genres, year));
       }
       else {
         if (!invalid_genres[genre]) {
-          // console.log(`  - ${JSON.stringify(genre)} (${year})`);
           invalid_genres[genre] = true;
         }
       }
@@ -151,14 +164,14 @@ function cleanGenres(genres, year) {
 }
 
 function toArray(cell) {
-  var arr = [];
+  let arr = [];
 
   if (!cell)
     return arr;
 
   cell.contents().each(function(ix, el) {
-    var text = $(el).text().trim();
-    var text_parts = text.split(/\n|,|;|\//);
+    let text = $(el).text().trim();
+    let text_parts = text.split(/\n|,|;|\//);
     text_parts.forEach(function(text, ix) {
       text = text.trim();
       if (!text)
@@ -178,4 +191,16 @@ function toArray(cell) {
   });
 
   return arr;
+}
+
+function assert(val, msg) {
+  if (!val) {
+    throw new Error(msg || 'Assertion failed');
+  }
+}
+
+async function timeout(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
 }
