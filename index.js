@@ -14,7 +14,7 @@ JSON.parse(fs.readFileSync('genres.json')).forEach(function(genre) {
 });
 
 let years = [];
-for (let year = 1970; year <= 2023; year++)
+for (let year = 2020; year <= 2023; year++)
   years.push(year);
 
 invalid_genres = {};
@@ -39,7 +39,6 @@ async function main() {
     }
 
     let summary_data = JSON.parse(res.body);
-    movie.description = summary_data.description;
     movie.extract = summary_data.extract;
     if (summary_data.thumbnail) {
       movie.thumbnail = summary_data.thumbnail.source;
