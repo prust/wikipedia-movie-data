@@ -78,6 +78,12 @@ async function scrapeMoviesForYear(year) {
     // skip 'Top-grossing Films' tables (heading row includes "Gross")
     if ($(rows[0]).text().toLowerCase().includes('gross'))
       return;
+    
+    // 2003 has **both** an alphabetical full-year table and an opening-date season/quarter tables
+    // skip the first (full-year) table to avoid dupes
+    if (year == 2003 && $(rows[0]).text().toLowerCase().includes('opening')) {
+      return;
+    }
 
     rows.each(function(ix, el) {
       // the first row just has headings
